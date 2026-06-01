@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, isNull, gte, lte, and, desc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, folders, tasks, timetableSlots, completionEvents, Folder, Task, TimetableSlot, CompletionEvent } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,115 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Folder queries
+export async function getUserFolders(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(folders)
+    .where(and(eq(folders.userId, userId), isNull(folders.parentId)));
+}
+
+export async function getFolderChildren(folderId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(folders)
+    .where(and(eq(folders.parentId, folderId), eq(folders.userId, userId)));
+}
+
+export async function getFolderById(folderId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(folders)
+    .where(and(eq(folders.id, folderId), eq(folders.userId, userId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+// Task queries
+export async function getFolderTasks(folderId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.folderId, folderId), eq(tasks.userId, userId)));
+}
+
+export async function getUserTasks(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(tasks).where(eq(tasks.userId, userId));
+}
+
+export async function getTaskById(taskId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(tasks)
+    .where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+// Timetable queries
+export async function getUserTimetableSlots(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(timetableSlots)
+    .where(and(eq(timetableSlots.userId, userId), eq(timetableSlots.isActive, 1)));
+}
+
+export async function getTimetableSlotsForDay(userId: number, dayOfWeek: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(timetableSlots)
+    .where(
+      and(
+        eq(timetableSlots.userId, userId),
+        eq(timetableSlots.dayOfWeek, dayOfWeek),
+        eq(timetableSlots.isActive, 1)
+      )
+    );
+}
+
+// Completion event queries
+export async function getUserCompletionEvents(
+  userId: number,
+  startDate: Date,
+  endDate: Date
+) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(completionEvents)
+    .where(
+      and(
+        eq(completionEvents.userId, userId),
+        gte(completionEvents.completedAt, startDate),
+        lte(completionEvents.completedAt, endDate)
+      )
+    )
+    .orderBy(desc(completionEvents.completedAt));
+}
+
+export async function getTaskCompletionEvents(taskId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(completionEvents)
+    .where(and(eq(completionEvents.taskId, taskId), eq(completionEvents.userId, userId)))
+    .orderBy(desc(completionEvents.completedAt));
+}
