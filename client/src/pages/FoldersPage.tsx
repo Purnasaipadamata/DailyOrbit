@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Plus, Folder, Trash2, Edit2 } from "lucide-react";
 import { toast } from "sonner";
+import { TaskList } from "@/components/TaskList";
 
 export default function FoldersPage() {
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
@@ -17,10 +18,6 @@ export default function FoldersPage() {
   const utils = trpc.useUtils();
   const { data: folders, isLoading } = trpc.folders.list.useQuery();
   const { data: children } = trpc.folders.children.useQuery(
-    { folderId: selectedFolderId || 0 },
-    { enabled: selectedFolderId !== null }
-  );
-  const { data: tasks } = trpc.tasks.list.useQuery(
     { folderId: selectedFolderId || 0 },
     { enabled: selectedFolderId !== null }
   );
@@ -177,30 +174,7 @@ export default function FoldersPage() {
 
               {/* Tasks in Folder */}
               <Card className="p-4">
-                <h3 className="font-semibold mb-4 text-foreground">Tasks in this folder</h3>
-                {tasks && tasks.length > 0 ? (
-                  <div className="space-y-2">
-                    {tasks.map((task) => (
-                      <div key={task.id} className="p-3 border border-border rounded-md hover:bg-muted transition-smooth">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium text-foreground">{task.title}</p>
-                            <p className="text-sm text-muted-foreground">{task.description}</p>
-                          </div>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            task.status === "Completed" ? "bg-green-100 text-green-700" :
-                            task.status === "In Progress" ? "bg-blue-100 text-blue-700" :
-                            "bg-gray-100 text-gray-700"
-                          }`}>
-                            {task.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No tasks in this folder</p>
-                )}
+                <TaskList folderId={selectedFolderId} />
               </Card>
             </>
           )}

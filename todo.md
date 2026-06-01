@@ -77,13 +77,13 @@
 
 ### Task List View
 - [x] Create task list component for current folder
-- [ ] Implement task creation form (basic version exists)
-- [ ] Implement task editing modal/form
-- [ ] Implement task status toggle (Pending → In Progress → Completed)
-- [ ] Implement task priority selector
-- [ ] Implement due date picker
-- [ ] Implement estimated duration input
-- [ ] Implement task deletion with confirmation
+- [x] Implement task creation form (basic version exists)
+- [x] Implement task editing modal/form
+- [x] Implement task status toggle (Pending → In Progress → Completed)
+- [x] Implement task priority selector
+- [x] Implement due date picker
+- [x] Implement estimated duration input
+- [x] Implement task deletion with confirmation
 - [ ] Add task filtering by status/priority
 - [ ] Add task sorting options
 
