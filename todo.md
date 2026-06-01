@@ -106,8 +106,8 @@
 - [x] Add slot removal functionality
 
 ### Timetable UI - Daily View
-- [ ] Create daily view component
-- [ ] Show today's scheduled tasks
+- [x] Create daily view component (via tabs)
+- [x] Show today's scheduled tasks
 - [ ] Implement task status update from daily view
 - [ ] Add quick task completion toggle
 - [ ] Display time remaining for each task
@@ -115,7 +115,7 @@
 ### Recurrence Logic UI
 - [x] Create recurrence selector (Daily, Weekly, Custom)
 - [ ] Implement custom recurrence form (specific days)
-- [ ] Display recurrence pattern in slot preview
+- [x] Display recurrence pattern in slot preview
 - [ ] Add recurrence editing capability
 
 ### Conflict Detection

@@ -3,10 +3,12 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Plus, Trash2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -20,6 +22,7 @@ export default function TimetablePage() {
     endTime: "10:00",
     recurrence: "Weekly" as const,
   });
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const utils = trpc.useUtils();
   const { data: tasks, isLoading: tasksLoading } = trpc.tasks.all.useQuery();
@@ -38,6 +41,7 @@ export default function TimetablePage() {
 
   const deleteSlotMutation = trpc.timetable.delete.useMutation({
     onSuccess: async () => {
+      setDeletingId(null);
       await utils.timetable.list.invalidate();
       await utils.timetable.forDay.invalidate();
       toast.success("Schedule deleted");
@@ -85,6 +89,7 @@ export default function TimetablePage() {
   }
 
   const hasConflict = checkConflict(newSlot.startTime, newSlot.endTime);
+  const getTaskName = (taskId: number) => tasks?.find((t) => t.id === taskId)?.title || `Task #${taskId}`;
 
   return (
     <div className="space-y-6">
@@ -183,68 +188,108 @@ export default function TimetablePage() {
         </Dialog>
       </div>
 
-      {/* Weekly Timetable Grid */}
-      <Card className="p-6 overflow-x-auto">
-        <div className="grid grid-cols-8 gap-2 min-w-max">
-          {/* Header */}
-          <div className="font-semibold text-foreground">Time</div>
-          {DAYS.map((day, idx) => (
-            <div key={idx} className={`font-semibold text-center p-2 rounded-md ${
-              selectedDay === idx ? "bg-primary text-primary-foreground" : "text-foreground"
-            }`}>
-              {day}
-            </div>
-          ))}
+      <Tabs defaultValue="weekly" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="weekly">Weekly View</TabsTrigger>
+          <TabsTrigger value="list">All Schedules</TabsTrigger>
+        </TabsList>
 
-          {/* Time slots */}
-          {HOURS.map((hour) => (
-            <div key={`hour-${hour}`}>
-              <div className="text-xs text-muted-foreground font-medium">{hour.toString().padStart(2, "0")}:00</div>
-              {DAYS.map((_, dayIdx) => {
-                const daySlot = daySlots?.find(
-                  (s) => parseInt(s.startTime.split(":")[0]) === hour
-                );
-                return (
-                  <div key={`${hour}-${dayIdx}`} className={`p-2 rounded-md text-xs h-12 flex items-center justify-center ${
-                    daySlot
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  }`}>
-                    {daySlot && (
-                      <div className="text-center truncate">
-                        <p className="font-medium truncate">{daySlot.taskId}</p>
-                      </div>
-                    )}
+        <TabsContent value="weekly" className="space-y-4">
+          <Card className="p-6 overflow-x-auto">
+            <div className="grid grid-cols-8 gap-1 min-w-max">
+              <div className="font-semibold text-foreground text-sm">Time</div>
+              {DAYS.map((day, idx) => (
+                <div key={idx} className={`font-semibold text-center p-2 rounded-md text-sm ${
+                  selectedDay === idx ? "bg-primary text-primary-foreground" : "text-foreground"
+                }`}>
+                  {day.slice(0, 3)}
+                </div>
+              ))}
+
+              {HOURS.map((hour) => (
+                <div key={`hour-${hour}`} className="contents">
+                  <div className="text-xs text-muted-foreground font-medium p-1">
+                    {hour.toString().padStart(2, "0")}:00
                   </div>
-                );
-              })}
+                  {DAYS.map((_, dayIdx) => {
+                    const daySlot = slots?.find(
+                      (s) => s.dayOfWeek === dayIdx && parseInt(s.startTime.split(":")[0]) === hour
+                    );
+                    return (
+                      <div key={`${hour}-${dayIdx}`} className={`p-1 rounded-md text-xs h-10 flex items-center justify-center overflow-hidden ${
+                        daySlot ? "bg-primary text-primary-foreground font-medium" : "bg-muted/50"
+                      }`}>
+                        {daySlot && (
+                          <span className="truncate" title={getTaskName(daySlot.taskId)}>
+                            {getTaskName(daySlot.taskId)}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </Card>
+          </Card>
+        </TabsContent>
 
-      {/* Scheduled Slots List */}
-      <Card className="p-6">
-        <h2 className="font-semibold mb-4 text-foreground">All Scheduled Tasks</h2>
-        <div className="space-y-2">
-          {slots?.map((slot) => (
-            <div key={slot.id} className="flex items-center justify-between p-3 border border-border rounded-md hover:bg-muted transition-smooth">
-              <div>
-                <p className="font-medium text-foreground">{DAYS[slot.dayOfWeek]}</p>
-                <p className="text-sm text-muted-foreground">{slot.startTime} - {slot.endTime}</p>
+        <TabsContent value="list" className="space-y-4">
+          <Card className="p-6">
+            <h2 className="font-semibold mb-4 text-foreground">All Scheduled Tasks</h2>
+            {slots && slots.length > 0 ? (
+              <div className="space-y-2">
+                {slots.map((slot) => (
+                  <div key={slot.id} className="flex items-center justify-between p-3 border border-border rounded-md hover:bg-muted transition-smooth">
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        {DAYS[slot.dayOfWeek]}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {slot.startTime} - {slot.endTime} • {getTaskName(slot.taskId)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Recurrence: {slot.recurrence}
+                      </p>
+                    </div>
+                    <AlertDialog open={deletingId === slot.id} onOpenChange={(open) => !open && setDeletingId(null)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeletingId(slot.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Schedule</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this scheduled task? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="flex gap-2 justify-end">
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => {
+                              deleteSlotMutation.mutate({ id: slot.id });
+                            }}
+                            disabled={deleteSlotMutation.isPending}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deleteSlotMutation.isPending ? "Deleting..." : "Delete"}
+                          </AlertDialogAction>
+                        </div>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                ))}
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => deleteSlotMutation.mutate({ id: slot.id })}
-                disabled={deleteSlotMutation.isPending}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      </Card>
+            ) : (
+              <p className="text-muted-foreground text-center py-8">No scheduled tasks yet</p>
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
