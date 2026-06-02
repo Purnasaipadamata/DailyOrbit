@@ -8,13 +8,6 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Loader2 } from "lucide-react";
-import { useLocation } from "wouter";
-
-// Helper to strip query parameters from path
-function useCleanPath() {
-  const [location] = useLocation();
-  return location.split('?')[0];
-}
 
 function Router() {
   const { user, loading } = useAuth();
@@ -32,12 +25,14 @@ function Router() {
       {user ? (
         <>
           <Route path="/dashboard/*" component={Dashboard} />
-          <Route path="/:rest*" component={Dashboard} />
+          <Route path="/" component={Dashboard} />
+          <Route component={NotFound} />
         </>
       ) : (
         <>
-          <Route path="/:rest*" component={Home} />
+          <Route path="/" component={Home} />
           <Route path="/404" component={NotFound} />
+          <Route component={NotFound} />
         </>
       )}
     </Switch>
